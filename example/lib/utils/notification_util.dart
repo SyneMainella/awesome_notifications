@@ -38,17 +38,14 @@ Future<void> externalUrl(String url) async {
 ************************************************ */
 
 Future<void> showBasicNotification(int id) async {
-
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: id,
-          channelKey: 'ringtone_channel',//'basic_channel',//'custom_sound',//
+          channelKey: 'basic_channel',
           title: 'Simple Notification',
           body: 'Simple body',
-      )/*,
-      schedule: NotificationSchedule(
-          initialDateTime: DateTime.now().add(Duration(seconds: 5)).toUtc()
-      )*/
+          //icon: 'resource://drawable/res_power_ranger_thunder'
+      )
   );
 }
 
@@ -954,11 +951,20 @@ Future<void> showGroupedNotifications(id) async {
           title: 'Little Jhonny',
           body: 'Hey dude! Look what i found!'));
 
-  sleep(Duration(seconds: 2));
+  sleep(Duration(microseconds: 700));
 
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: 2, channelKey: 'grouped', title: 'Cyclano', body: 'What?'));
+
+  sleep(Duration(seconds: 3));
+
+  await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+          id: 3,
+          channelKey: 'grouped',
+          title: 'Little Jhonny',
+          body: 'This push notifications plugin is amazing!'));
 
   sleep(Duration(seconds: 2));
 
@@ -967,28 +973,7 @@ Future<void> showGroupedNotifications(id) async {
           id: 3,
           channelKey: 'grouped',
           title: 'Little Jhonny',
-          body: 'This push notifications plugin is amazing!'
-      ));
-
-  sleep(Duration(seconds: 2));
-
-  await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-          id: 4,
-          channelKey: 'grouped',
-          title: 'Little Jhonny',
-          body: 'Its perfect!'
-      ));
-
-  sleep(Duration(seconds: 2));
-
-  await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-          id: 5,
-          channelKey: 'grouped',
-          title: 'Little Jhonny',
-          body: 'I gonna contribute with the project! For sure!'
-      ));
+          body: 'Its perfect!'));
 }
 
 /* *********************************************
@@ -1024,7 +1009,7 @@ Future<void> repeatMinuteNotification(int id) async {
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: id,
-          channelKey: 'scheduled',
+          channelKey: 'schedule',
           title: 'Notification at every single minute',
           body:
               'This notification was schedule to repeat at every single minute.',
@@ -1038,7 +1023,7 @@ Future<void> repeatPreciseThreeTimes(int id) async {
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: id,
-          channelKey: 'scheduled',
+          channelKey: 'schedule',
           title: 'Notification scheduled to play precisely 3 times',
           body: 'This notification was schedule to repeat precisely 3 times.',
           notificationLayout: NotificationLayout.BigPicture,
@@ -1054,7 +1039,7 @@ Future<void> repeatMinuteNotificationOClock(int id) async {
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: id,
-          channelKey: 'scheduled',
+          channelKey: 'schedule',
           title: 'Notification at exactly every single minute',
           body:
               'This notification was schedule to repeat at every single minute at clock.',
@@ -1070,7 +1055,7 @@ Future<void> showNotificationAtScheduleCron(
   await AwesomeNotifications().createNotification(
     content: NotificationContent(
       id: id,
-      channelKey: 'scheduled',
+      channelKey: 'schedule',
       title: 'Just in time!',
       body: 'This notification was schedule to shows at ' +
           Utils.DateUtils.parseDateToString(scheduleTime.toLocal()) +
@@ -1090,7 +1075,7 @@ Future<void> showScheduleAtWorkweekDay10AmLocal(int id) async {
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: id,
-          channelKey: 'scheduled',
+          channelKey: 'schedule',
           title: 'Time to go work!',
           body: 'And the time is ticking...tic, tic, Wake up!',
           payload: {'uuid': 'uuid-test'}),

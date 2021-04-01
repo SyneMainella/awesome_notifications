@@ -19,9 +19,6 @@ class NotificationContent extends BaseNotificationContent {
 
   NotificationLayout notificationLayout;
 
-  bool displayOnForeground;
-  bool displayOnBackground;
-
   String createdDate;
   String displayedDate;
 
@@ -37,7 +34,6 @@ class NotificationContent extends BaseNotificationContent {
       String icon,
       String largeIcon,
       String bigPicture,
-      String customSound,
       bool autoCancel,
       Color color,
       Color backgroundColor,
@@ -51,8 +47,6 @@ class NotificationContent extends BaseNotificationContent {
       this.createdLifeCycle,
       this.displayedLifeCycle,
       this.createdDate,
-      this.displayOnForeground,
-      this.displayOnBackground,
       this.displayedDate})
       : super(
             id: id,
@@ -65,7 +59,6 @@ class NotificationContent extends BaseNotificationContent {
             icon: icon,
             largeIcon: largeIcon,
             bigPicture: bigPicture,
-            customSound: customSound,
             autoCancel: autoCancel,
             color: color,
             backgroundColor: backgroundColor);
@@ -92,10 +85,6 @@ class NotificationContent extends BaseNotificationContent {
         mapData, 'createdLifeCycle', NotificationLifeCycle.values);
 
     this.createdDate = AssertUtils.extractValue<String>(mapData, 'createdDate');
-
-    this.displayOnForeground = AssertUtils.extractValue<bool>(mapData, 'displayOnForeground');
-    this.displayOnBackground = AssertUtils.extractValue<bool>(mapData, 'displayOnBackground');
-
     this.displayedDate =
         AssertUtils.extractValue<String>(mapData, 'displayedDate');
 
@@ -121,8 +110,6 @@ class NotificationContent extends BaseNotificationContent {
         'createdLifeCycle': AssertUtils.toSimpleEnumString(createdLifeCycle),
         'displayedLifeCycle':
             AssertUtils.toSimpleEnumString(displayedLifeCycle),
-        'displayOnForeground': displayOnForeground,
-        'displayOnBackground': displayOnBackground,
         'createdDate': createdDate,
         'displayedDate': displayedDate,
       });

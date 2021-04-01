@@ -34,6 +34,7 @@ public class NotificationContentModel extends Model {
     public List<Object> actionButtons;
     public Map<String, String> payload;
     public Boolean playSound;
+    public String customSound;
     public String icon;
     public String largeIcon;
     public Boolean locked;
@@ -87,6 +88,7 @@ public class NotificationContentModel extends Model {
         body  = getValueOrDefault(arguments, Definitions.NOTIFICATION_BODY, String.class);
         summary = getValueOrDefault(arguments, Definitions.NOTIFICATION_SUMMARY, String.class);
 
+        customSound = getValueOrDefault(arguments, Definitions.NOTIFICATION_CUSTOM_SOUND, String.class);
         playSound = getValueOrDefault(arguments, Definitions.NOTIFICATION_PLAY_SOUND, Boolean.class);
 
         showWhen = getValueOrDefault(arguments, Definitions.NOTIFICATION_SHOW_WHEN, Boolean.class);
@@ -135,6 +137,7 @@ public class NotificationContentModel extends Model {
 
         returnedObject.put(Definitions.NOTIFICATION_LOCKED, this.locked);
 
+        returnedObject.put(Definitions.NOTIFICATION_CUSTOM_SOUND, this.customSound);
         returnedObject.put(Definitions.NOTIFICATION_PLAY_SOUND, this.playSound);
 
         returnedObject.put(Definitions.NOTIFICATION_TICKER, this.ticker);
@@ -236,6 +239,7 @@ public class NotificationContentModel extends Model {
         }
 
         validateLargeIcon(context);
+        validateSound(context);
 
     }
 
@@ -266,5 +270,11 @@ public class NotificationContentModel extends Model {
                 (!StringUtils.isNullOrEmpty(largeIcon) && !BitmapUtils.isValidBitmap(context, largeIcon))
         )
             throw new PushNotificationException("Invalid large icon '"+largeIcon+"'");
+    }
+
+    private void validateSound(Context context) throws PushNotificationException {
+        if(BooleanUtils.getValue(playSound) && !StringUtils.isNullOrEmpty(customSound) && !AudioUtils.isValidAudio(context, customSound)){
+            throw new PushNotificationException("Invalid audio source '"+customSound+"'");
+        }
     }
 }

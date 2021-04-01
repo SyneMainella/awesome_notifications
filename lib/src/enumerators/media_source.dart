@@ -11,7 +11,6 @@
 /// Example: resource://url.com/to/image-asset.png
 enum MediaSource { Resource, Asset, File, Network, Unknown }
 
-/// Media source prefix, to identify which treatment should be done to each file path
 class MediaSourcePrefix {
   static const Resource = 'resource://';
   static const Asset = 'asset://';

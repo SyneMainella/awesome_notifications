@@ -53,3 +53,4 @@ target 'AwesomeContentExtension' do
 
   pod 'awesome_notifications', :path => '.symlinks/plugins/awesome_notifications/ios'
 end
+

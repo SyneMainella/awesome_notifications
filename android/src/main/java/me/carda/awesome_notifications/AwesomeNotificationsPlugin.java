@@ -19,7 +19,6 @@ import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +41,6 @@ import android.app.Activity;
 
 import me.carda.awesome_notifications.notifications.BitmapResourceDecoder;
 import me.carda.awesome_notifications.notifications.models.DefaultsModel;
-import me.carda.awesome_notifications.notifications.models.NotificationScheduleModel;
 import me.carda.awesome_notifications.notifications.models.PushNotification;
 import me.carda.awesome_notifications.notifications.enumeratos.MediaSource;
 import me.carda.awesome_notifications.notifications.enumeratos.NotificationLifeCycle;
@@ -65,8 +63,6 @@ import me.carda.awesome_notifications.notifications.models.returnedData.Notifica
 import me.carda.awesome_notifications.notifications.NotificationSender;
 import me.carda.awesome_notifications.notifications.NotificationScheduler;
 
-import me.carda.awesome_notifications.utils.BooleanUtils;
-import me.carda.awesome_notifications.utils.CronUtils;
 import me.carda.awesome_notifications.utils.DateUtils;
 import me.carda.awesome_notifications.utils.JsonUtils;
 import me.carda.awesome_notifications.utils.ListUtils;
@@ -165,7 +161,6 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
         intentFilter.addAction(Definitions.BROADCAST_DISPLAYED_NOTIFICATION);
         intentFilter.addAction(Definitions.BROADCAST_DISMISSED_NOTIFICATION);
         intentFilter.addAction(Definitions.BROADCAST_KEEP_ON_TOP);
-        intentFilter.addAction(Definitions.BROADCAST_MEDIA_BUTTON);
 
         LocalBroadcastManager manager = LocalBroadcastManager.getInstance(applicationContext);
         manager.registerReceiver(this, intentFilter);
@@ -253,10 +248,6 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
                 onBroadcastKeepOnTopActionNotification(intent);
                 return;
 
-            case Definitions.BROADCAST_MEDIA_BUTTON:
-                onBroadcastMediaButton(intent);
-                return;
-
             default:
                 Log.d(TAG, action);
                 return;
@@ -295,17 +286,6 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
 
             Serializable serializable = intent.getSerializableExtra(Definitions.EXTRA_BROADCAST_MESSAGE);
             pluginChannel.invokeMethod(Definitions.CHANNEL_METHOD_RECEIVED_ACTION, serializable);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void onBroadcastMediaButton(Intent intent) {
-        try {
-
-            Serializable serializable = intent.getSerializableExtra(Definitions.EXTRA_BROADCAST_MESSAGE);
-            pluginChannel.invokeMethod(Definitions.CHANNEL_METHOD_MEDIA_BUTTON, serializable);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -451,10 +431,6 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
                 channelMethodListAllSchedules(call, result);
                 return;
 
-            case Definitions.CHANNEL_METHOD_GET_NEXT_DATE:
-                channelMethodGetNextDate(call, result);
-                return;
-
             case Definitions.CHANNEL_METHOD_SET_NOTIFICATION_CHANNEL:
                 channelMethodSetChannel(call, result);
                 return;
@@ -522,57 +498,17 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
         result.success(serializeds);
     }
 
-    private void channelMethodGetNextDate(MethodCall call, Result result) {
-        try {
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = MapUtils.extractArgument(call.arguments(), Map.class).orNull();
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> scheduleData = (Map<String, Object>) data.get(Definitions.PUSH_NOTIFICATION_SCHEDULE);
-            String fixedDate = (String) data.get(Definitions.NOTIFICATION_INITIAL_FIXED_DATE);
-            NotificationScheduleModel scheduleModel = new NotificationScheduleModel().fromMap(scheduleData);
-
-            if(scheduleModel != null) {
-
-                if(!StringUtils.isNullOrEmpty(fixedDate)){
-                    CronUtils.fixedNowDate = DateUtils.parseDate(fixedDate);
-                }
-
-                Calendar nextValidDate = CronUtils.getNextCalendar(
-                        scheduleModel.initialDateTime,
-                        scheduleModel.crontabSchedule
-                );
-
-                CronUtils.fixedNowDate = null;
-
-                String convertedDate = DateUtils.dateToString(nextValidDate.getTime());
-                result.success(convertedDate);
-                return;
-            }
-
-        } catch (Exception e){
-            CronUtils.fixedNowDate = null;
-            e.printStackTrace();
-            result.error("Invalid schedule data", e.getMessage(), e);
-            return;
-        }
-
-        result.success(null);
-    }
-
     private void channelMethodSetChannel(MethodCall call, Result result) {
         try {
 
             @SuppressWarnings("unchecked")
             Map<String, Object> channelData = MapUtils.extractArgument(call.arguments(), Map.class).orNull();
             NotificationChannelModel channelModel = new NotificationChannelModel().fromMap(channelData);
-            Boolean forceUpdate = BooleanUtils.getValue((Boolean) channelData.get(Definitions.CHANNEL_FORCE_UPDATE));
 
             if(channelModel == null){
                 result.error("Invalid channel", "Channel is invalid", "null");
             } else {
-                ChannelManager.saveChannel(applicationContext, channelModel, forceUpdate);
+                ChannelManager.saveChannel(applicationContext, channelModel);
                 result.success(true);
 
                 ChannelManager.commitChanges(applicationContext);
@@ -595,15 +531,7 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
             result.success(false);
         } else {
             Boolean removed = ChannelManager.removeChannel(applicationContext, channelKey);
-
-            if (removed) {
-                Log.d(TAG, "Channel removed");
-                result.success(true);
-            }
-            else {
-                Log.d(TAG, "Channel '"+channelKey+"' not found");
-                result.success(false);
-            }
+            result.success(removed);
         }
 
         ChannelManager.commitChanges(applicationContext);
@@ -695,28 +623,20 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
     }
 
     private void channelRequestNotification(MethodCall call, Result result){
+        final Intent intent = new Intent();
 
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
 
-            final Intent intent = new Intent();
+        //for Android 5-7
+        intent.putExtra("app_package", applicationContext.getPackageName());
+        intent.putExtra("app_uid", applicationContext.getApplicationInfo().uid);
 
-            intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+        // for Android 8 and above
+        intent.putExtra("android.provider.extra.APP_PACKAGE", applicationContext.getPackageName());
 
-            //for Android 5-7
-            intent.putExtra("app_package", applicationContext.getPackageName());
-            intent.putExtra("app_uid", applicationContext.getApplicationInfo().uid);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-            // for Android 8 and above
-            intent.putExtra("android.provider.extra.APP_PACKAGE", applicationContext.getPackageName());
-
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            applicationContext.startActivity(intent);
-            result.success(true);
-        }
-        else {
-            channelIsNotificationAllowed(call, result);
-        }
+        applicationContext.startActivity(intent);
     }
 
     private void channelMethodCreateNotification(MethodCall call, Result result) {
@@ -823,21 +743,15 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
             return false;
         }
 
-        NotificationChannelModel channelModel = ChannelManager.getChannelByKey(context, channelKey);
-
-        if(channelModel == null){
-            return false;
-        }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             NotificationManagerCompat manager = NotificationManagerCompat.from(context);
-            NotificationChannel channel = manager.getNotificationChannel(channelModel.getChannelKey());
+            NotificationChannel channel = manager.getNotificationChannel(channelKey);
             return channel != null && channel.getImportance() != NotificationManager.IMPORTANCE_NONE;
 
         }
 
-        return true;
+        return ChannelManager.getChannelByKey(context, channelKey) != null;
     }
 
     @SuppressWarnings("unchecked")
@@ -849,13 +763,11 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
             Map<String, Object> platformParameters = call.arguments();
 
             String defaultIconPath = (String) platformParameters.get(Definitions.DEFAULT_ICON);
-            Boolean firebaseEnabled = (Boolean) platformParameters.get(Definitions.FIREBASE_ENABLED);
             channelsData = (List<Object>) platformParameters.get(Definitions.INITIALIZE_CHANNELS);
 
             setDefaultConfigurations(
                 applicationContext,
                 defaultIconPath,
-                firebaseEnabled,
                 channelsData
             );
 
@@ -868,9 +780,9 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
         }
     }
 
-    private boolean setDefaultConfigurations(Context context, String defaultIcon, Boolean firebaseEnabled, List<Object> channelsData) throws PushNotificationException {
+    private boolean setDefaultConfigurations(Context context, String defaultIcon, List<Object> channelsData) throws PushNotificationException {
 
-        setDefaults(context, defaultIcon, firebaseEnabled);
+        setDefaultIcon(context, defaultIcon);
 
         setChannels(context, channelsData);
 
@@ -886,14 +798,12 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
         if(ListUtils.isNullOrEmpty(channelsData)) return;
 
         List<NotificationChannelModel> channels = new ArrayList<>();
-        Boolean forceUpdate = false;
 
         for(Object channelDataObject : channelsData){
             if(channelDataObject instanceof Map<?,?>){
                 @SuppressWarnings("unchecked")
                 Map<String, Object> channelData = (Map<String, Object>) channelDataObject;
                 NotificationChannelModel channelModel = new NotificationChannelModel().fromMap(channelData);
-                forceUpdate = BooleanUtils.getValue((Boolean) channelData.get(Definitions.CHANNEL_FORCE_UPDATE));
 
                 if(channelModel != null){
                     channels.add(channelModel);
@@ -904,13 +814,13 @@ public class AwesomeNotificationsPlugin extends BroadcastReceiver implements Flu
         }
 
         for(NotificationChannelModel channelModel : channels){
-            ChannelManager.saveChannel(context, channelModel, forceUpdate);
+            ChannelManager.saveChannel(context, channelModel);
         }
 
         ChannelManager.commitChanges(context);
     }
 
-    private void setDefaults(Context context, String defaultIcon, Boolean enabled) {
+    private void setDefaultIcon(Context context, String defaultIcon) {
 
         if (MediaUtils.getMediaSourceType(defaultIcon) != MediaSource.Resource) {
             defaultIcon = null;

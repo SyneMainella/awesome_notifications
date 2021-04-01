@@ -50,7 +50,6 @@ enum Definitions {
     static let  CHANNEL_METHOD_REQUEST_NOTIFICATIONS = "requestNotifications"
     static let  CHANNEL_METHOD_GET_BADGE_COUNT = "getBadgeCount"
     static let  CHANNEL_METHOD_SET_BADGE_COUNT = "setBadgeCount"
-    static let  CHANNEL_METHOD_GET_NEXT_DATE = "getNextDate"
     static let  CHANNEL_METHOD_RESET_BADGE = "resetBadge"
     static let  CHANNEL_METHOD_CANCEL_NOTIFICATION = "cancelNotification"
     static let  CHANNEL_METHOD_CANCEL_SCHEDULE = "cancelSchedule"
@@ -100,7 +99,6 @@ enum Definitions {
     static let  NOTIFICATION_BUTTON_TYPE = "buttonType"
 
     static let  NOTIFICATION_PAYLOAD = "payload"
-    static let  NOTIFICATION_INITIAL_FIXED_DATE = "fixedDate"
     static let  NOTIFICATION_INITIAL_DATE_TIME = "initialDateTime"
     static let  NOTIFICATION_CRONTAB_SCHEDULE = "crontabSchedule"
     static let  NOTIFICATION_ENABLED = "enabled"
@@ -111,11 +109,10 @@ enum Definitions {
     static let  NOTIFICATION_ICON = "icon"
     static let  NOTIFICATION_PLAY_SOUND = "playSound"
     static let  NOTIFICATION_SOUND_SOURCE = "soundSource"
-    static let  NOTIFICATION_DEFAULT_RINGTONE_TYPE = "defaultRingtoneType"
     static let  NOTIFICATION_ENABLE_VIBRATION = "enableVibration"
     static let  NOTIFICATION_VIBRATION_PATTERN = "vibrationPattern"
     static let  NOTIFICATION_GROUP_KEY = "groupKey"
-    static let  NOTIFICATION_GROUP_SORT = "groupSort"
+    static let  NOTIFICATION_SET_AS_GROUP_SUMMARY = "setAsGroupSummary"
     static let  NOTIFICATION_GROUP_ALERT_BEHAVIOR = "groupAlertBehaviour"
     static let  NOTIFICATION_PRIVACY = "privacy"
     static let  NOTIFICATION_DEFAULT_PRIVACY = "defaultPrivacy"
@@ -144,7 +141,6 @@ enum Definitions {
         Definitions.NOTIFICATION_ID: 0,
         Definitions.NOTIFICATION_IMPORTANCE: NotificationImportance.Default,
         Definitions.NOTIFICATION_LAYOUT: NotificationLayout.Default,
-        Definitions.NOTIFICATION_GROUP_SORT: GroupSort.Desc,
         Definitions.NOTIFICATION_GROUP_ALERT_BEHAVIOR: GroupAlertBehaviour.All,
         Definitions.NOTIFICATION_DEFAULT_PRIVACY: NotificationPrivacy.Private,
         Definitions.NOTIFICATION_PRIVACY: NotificationPrivacy.Private,
@@ -156,7 +152,6 @@ enum Definitions {
         Definitions.NOTIFICATION_CHANNEL_KEY: "miscellaneous",
         Definitions.NOTIFICATION_CHANNEL_DESCRIPTION: "Notifications",
         Definitions.NOTIFICATION_CHANNEL_NAME: "Notifications",
-        Definitions.NOTIFICATION_DEFAULT_RINGTONE_TYPE: DefaultRingtoneType.Notification,
         Definitions.NOTIFICATION_CHANNEL_SHOW_BADGE: false,
         Definitions.NOTIFICATION_HIDE_LARGE_ICON_ON_EXPAND: false,
         Definitions.NOTIFICATION_ENABLED: true,

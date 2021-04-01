@@ -1,7 +1,6 @@
 package me.carda.awesome_notifications.notifications;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 
 import android.content.Context;
@@ -13,15 +12,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.service.notification.NotificationListenerService;
-import android.service.notification.StatusBarNotification;
 
 import com.github.arturogutierrez.BadgesNotSupportedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -32,9 +28,7 @@ import me.carda.awesome_notifications.Definitions;
 import me.carda.awesome_notifications.notifications.broadcastReceivers.DismissedNotificationReceiver;
 import me.carda.awesome_notifications.notifications.broadcastReceivers.KeepOnTopActionReceiver;
 import me.carda.awesome_notifications.notifications.enumeratos.ActionButtonType;
-import me.carda.awesome_notifications.notifications.enumeratos.GroupSort;
 import me.carda.awesome_notifications.notifications.enumeratos.NotificationLayout;
-import me.carda.awesome_notifications.notifications.enumeratos.NotificationPrivacy;
 import me.carda.awesome_notifications.notifications.exceptions.PushNotificationException;
 import me.carda.awesome_notifications.notifications.managers.ChannelManager;
 import me.carda.awesome_notifications.notifications.managers.DefaultsManager;
@@ -186,8 +180,6 @@ public class NotificationBuilder {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, pushNotification.content.channelKey);
 
-        setGrouping(context, pushNotification, channel, builder);
-
         setVisibility(context, pushNotification, channel, builder);
         setShowWhen(pushNotification, builder);
 
@@ -205,7 +197,7 @@ public class NotificationBuilder {
         setLockedNotification(pushNotification, channel, builder);
         setImportance(channel, builder);
 
-        setSound(context, pushNotification, channel, builder);
+        setSound(context, channel, builder);
         setVibrationPattern(channel, builder);
         setLights(channel, builder);
 
@@ -215,9 +207,7 @@ public class NotificationBuilder {
 
         setBadge(context, channel, builder);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder.setChannelId(channel.getChannelKey());
-        }
+        applyGrouping(channel, builder);
 
         builder.setContentIntent(pendingIntent);
         builder.setDeleteIntent(deleteIntent);
@@ -321,14 +311,13 @@ public class NotificationBuilder {
     }
 
     private void setVisibility(Context context, PushNotification pushNotification, NotificationChannelModel channelModel, NotificationCompat.Builder builder) {
-
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
 
             Integer visibilityIndex;
             visibilityIndex = IntegerUtils.extractInteger(pushNotification.content.privacy, channelModel.defaultPrivacy.ordinal());
-            visibilityIndex = IntegerUtils.extractInteger(visibilityIndex, NotificationPrivacy.Public);
+            visibilityIndex = IntegerUtils.extractInteger(visibilityIndex, Notification.VISIBILITY_PUBLIC);
 
-            builder.setVisibility(visibilityIndex - 1);
+            builder.setVisibility(visibilityIndex);
         }
     }
 
@@ -411,7 +400,6 @@ public class NotificationBuilder {
                 context,
                 Definitions.NOTIFICATION_BUTTON_ACTION_PREFIX + "_" + buttonProperties.key,
                 pushNotification,
-                (buttonProperties.buttonType == ActionButtonType.DisabledAction) ? AwesomeNotificationsPlugin.class :
                 (buttonProperties.buttonType == ActionButtonType.KeepOnTop) ?
                         KeepOnTopActionReceiver.class : getNotificationTargetActivityClass(context)
             );
@@ -424,8 +412,12 @@ public class NotificationBuilder {
             PendingIntent actionPendingIntent = null;
 
             if(buttonProperties.enabled){
-
-                if(buttonProperties.buttonType == ActionButtonType.KeepOnTop) {
+                if(/*
+                        (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.N
+                                && buttonProperties.buttonType == ActionButtonType.InputField)
+                            ||*/
+                        (buttonProperties.buttonType == ActionButtonType.KeepOnTop)
+                ){
 
                     actionPendingIntent = PendingIntent.getBroadcast(
                             context,
@@ -435,24 +427,7 @@ public class NotificationBuilder {
                     );
 
                 }
-                else if(buttonProperties.buttonType == ActionButtonType.DisabledAction) {
-
-                    actionPendingIntent = PendingIntent.getActivity(
-                            context,
-                            pushNotification.content.id,
-                            actionIntent,
-                            0
-                    );
-
-                }
                 else {
-
-                    if(
-                        android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.N
-                                && buttonProperties.buttonType == ActionButtonType.InputField
-                    ){
-                        //actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    }
 
                     actionPendingIntent = PendingIntent.getActivity(
                             context,
@@ -477,6 +452,7 @@ public class NotificationBuilder {
                 NotificationCompat.Action replyAction = new NotificationCompat.Action.Builder(
                         iconResource, buttonProperties.label, actionPendingIntent)
                         .addRemoteInput(remoteInput)
+                        .setAllowGeneratedReplies(true)
                         .build();
 
                 builder.addAction( replyAction );
@@ -488,14 +464,11 @@ public class NotificationBuilder {
         }
     }
 
-    private void setSound(Context context, PushNotification pushNotification, NotificationChannelModel channelModel, NotificationCompat.Builder builder) {
-
+    private void setSound(Context context, NotificationChannelModel channelModel, NotificationCompat.Builder builder) {
         Uri uri = null;
-
         if (BooleanUtils.getValue(channelModel.playSound)) {
-            uri = ChannelManager.retrieveSoundResourceUri(context, channelModel.defaultRingtoneType, channelModel.soundSource);
+            uri = ChannelManager.retrieveSoundResourceUri(context, channelModel);
         }
-
         builder.setSound(uri);
     }
 
@@ -532,35 +505,14 @@ public class NotificationBuilder {
         }
     }
 
-    private void setGrouping(Context context, PushNotification pushNotification, NotificationChannelModel channelModel, NotificationCompat.Builder builder) {
+    private void applyGrouping(NotificationChannelModel channelModel, NotificationCompat.Builder builder) {
 
         if (!StringUtils.isNullOrEmpty(channelModel.groupKey)) {
             builder.setGroup(channelModel.groupKey);
 
-            boolean grouped = true;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-
-                NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                StatusBarNotification[] currentActiveNotifications = manager.getActiveNotifications();
-
-                for (StatusBarNotification activeNotification : currentActiveNotifications) {
-                    if (activeNotification.getGroupKey().contains("g:"+channelModel.groupKey)) {
-                        grouped = false;
-                        break;
-                    }
-                }
-            }
-
-            if (grouped) {
+            if (BooleanUtils.getValue(channelModel.setAsGroupSummary)) {
                 builder.setGroupSummary(true);
             }
-
-            String idText = pushNotification.content.id.toString();
-            String sortKey = Long.toString(
-                (channelModel.groupSort == GroupSort.Asc ? System.currentTimeMillis() : Long.MAX_VALUE - System.currentTimeMillis())
-            );
-
-            builder.setSortKey(sortKey + idText);
 
             builder.setGroupAlertBehavior(channelModel.groupAlertBehavior.ordinal());
         }
